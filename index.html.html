@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Umpan Balik Masakan & Layanan</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    p.description {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      transition: background 0.3s ease;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .hidden {
+      display: none;
+    }
+    .thank-you {
+      color: green;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .feedback-list {
+      margin-top: 30px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    .feedback-item {
+      background: #f1f1f1;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+    }
+    .feedback-item p {
+      margin: 5px 0;
+    }
+    #logoutBtn {
+      background-color: #dc3545;
+      margin-top: 30px;
+    }
+    #logoutBtn:hover {
+      background-color: #a71d2a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Halaman Login -->
+  <div class="container" id="loginPage">
+    <h2>Selamat Datang!</h2>
+    <p class="description">Silakan isi nama dan email Anda untuk melanjutkan memberikan umpan balik.</p>
+    <form id="loginForm">
+      <input type="text" id="name" placeholder="Nama Anda" required />
+      <input type="email" id="email" placeholder="Email Anda" required />
+      <button type="submit">Lanjut</button>
+    </form>
+  </div>
+
+  <!-- Halaman Feedback -->
+  <div class="container hidden" id="feedbackPage">
+    <h2>Umpan Balik Anda</h2>
+    <p class="description">Halo <span id="userNameDisplay"></span>! Silakan isi umpan balik Anda di bawah ini.</p>
+    
+    <form id="feedbackForm">
+      <h3>🧂 Cita Rasa Makanan</h3>
+      <textarea id="rasaPesan" placeholder="Pesan Anda..."></textarea>
+      <textarea id="rasaKesan" placeholder="Kesan Anda..."></textarea>
+
+      <h3>🤝 Pelayanan Kami</h3>
+      <textarea id="pelayananPesan" placeholder="Pesan Anda..."></textarea>
+      <textarea id="pelayananKesan" placeholder="Kesan Anda..."></textarea>
+
+      <button type="submit">Kirim Feedback</button>
+    </form>
+
+    <p id="thanksMessage" class="thank-you hidden">Terima kasih atas umpan balik Anda!</p>
+
+    <div class="feedback-list" id="feedbackList">
+      <h3>📋 Daftar Feedback Sebelumnya:</h3>
+      <!-- Feedbacks akan ditampilkan di sini -->
+    </div>
+
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const feedbackForm = document.getElementById('feedbackForm');
+    const loginPage = document.getElementById('loginPage');
+    const feedbackPage = document.getElementById('feedbackPage');
+    const thanksMessage = document.getElementById('thanksMessage');
+    const feedbackList = document.getElementById('feedbackList');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Tampilkan feedback dari localStorage
+    function tampilkanFeedback() {
+      const feedbacks = JSON.parse(localStorage.getItem("feedbacks") || "[]");
+      feedbackList.innerHTML = '<h3>📋 Daftar Feedback Sebelumnya:</h3>';
+      if (feedbacks.length === 0) {
+        feedbackList.innerHTML += "<p>Belum ada feedback.</p>";
+        return;
+      }
+
+      feedbacks.forEach((fb) => {
+        const item = document.createElement('div');
+        item.className = 'feedback-item';
+        item.innerHTML = `
+          <p><strong>🕒 Waktu:</strong> ${new Date(fb.timestamp).toLocaleString()}</p>
+          ${fb.rasa.pesan || fb.rasa.kesan ? `
+            <p><strong>🧂 Cita Rasa - Pesan:</strong> ${fb.rasa.pesan || '-'}</p>
+            <p><strong>🧂 Cita Rasa - Kesan:</strong> ${fb.rasa.kesan || '-'}</p>` : ''}
+          ${fb.pelayanan.pesan || fb.pelayanan.kesan ? `
+            <p><strong>🤝 Pelayanan - Pesan:</strong> ${fb.pelayanan.pesan || '-'}</p>
+            <p><strong>🤝 Pelayanan - Kesan:</strong> ${fb.pelayanan.kesan || '-'}</p>` : ''}
+        `;
+        feedbackList.appendChild(item);
+      });
+    }
+
+    // Saat halaman dimuat, cek apakah sudah login
+    window.onload = function () {
+      const savedName = localStorage.getItem('name');
+      const savedEmail = localStorage.getItem('email');
+      if (savedName && savedEmail) {
+        userNameDisplay.textContent = savedName;
+        loginPage.classList.add('hidden');
+        feedbackPage.classList.remove('hidden');
+        tampilkanFeedback();
+      }
+    };
+
+    // Simpan data login
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+
+      if (!name || !email) {
+        alert("Nama dan email wajib diisi.");
+        return;
+      }
+
+      localStorage.setItem("name", name);
+      localStorage.setItem("email", email);
+
+      userNameDisplay.textContent = name;
+      loginPage.classList.add('hidden');
+      feedbackPage.classList.remove('hidden');
+      tampilkanFeedback();
+    });
+
+    // Simpan feedback dengan validasi minimal satu isi
+    feedbackForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const rasaPesan = document.getElementById('rasaPesan').value.trim();
+      const rasaKesan = document.getElementById('rasaKesan').value.trim();
+      const pelayananPesan = document.getElementById('pelayananPesan').value.trim();
+      const pelayananKesan = document.getElementById('pelayananKesan').value.trim();
+
+      if (!rasaPesan && !rasaKesan && !pelayananPesan && !pelayananKesan) {
+        alert("Mohon isi minimal satu kolom feedback sebelum mengirim.");
+        return;
+      }
+
+      const feedbackData = {
+        timestamp: new Date().toISOString(),
+        rasa: {
+          pesan: rasaPesan || null,
+          kesan: rasaKesan || null
+        },
+        pelayanan: {
+          pesan: pelayananPesan || null,
+          kesan: pelayananKesan || null
+        }
+      };
+
+      const existingFeedback = JSON.parse(localStorage.getItem("feedbacks") || "[]");
+      existingFeedback.push(feedbackData);
+      localStorage.setItem("feedbacks", JSON.stringify(existingFeedback));
+
+      feedbackForm.reset();
+      thanksMessage.classList.remove('hidden');
+      tampilkanFeedback();
+    });
+
+    // Logout event
+    logoutBtn.addEventListener('click', function() {
+      localStorage.removeItem('name');
+      localStorage.removeItem('email');
+      loginPage.classList.remove('hidden');
+      feedbackPage.classList.add('hidden');
+      feedbackForm.reset();
+      thanksMessage.classList.add('hidden');
+    });
+  </script>
+</body>
+</html>
